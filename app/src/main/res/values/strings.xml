@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">NFCReader</string>
+    <string name="received_message_default">Received Message:</string>
+    <string name="auth_fail">Authentication failed</string>
+</resources>

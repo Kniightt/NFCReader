@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+package tutorial;
+
+option java_package = "com.example.temalabor.nfcreader";
+option java_outer_classname = "TokenClass";
+
+message Token {
+	required string uid = 1;
+	required string token = 2;
+}
