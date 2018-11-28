@@ -13,12 +13,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.TextView;
 
+import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.HttpsCallableResult;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class MainActivity extends AppCompatActivity {
@@ -27,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     PendingIntent pendingIntent;
     IntentFilter[] intentFilters;
     NfcAdapter nfcAdapter;
-
+    FirebaseFunctions function;
     FirebaseAuth auth;
     TokenClass.Token token;
 
@@ -81,26 +84,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void authenticate(String strToken){
-        auth.signInWithCustomToken(strToken)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+        verifyToken(strToken)
+                .addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
+                    public void onComplete(@NonNull Task<String> task) {
                         if (task.isSuccessful())
-                            updateUI();
+                            updateUI(task.getResult());
                         else {
                             token = null;
-                            updateUI();
+                            updateUI("");
                         }
                     }
                 });
     }
 
-    private void updateUI(){
+    private Task<String> verifyToken(String strToken) {
+        return function.getHttpsCallable("verifyToken")
+                .call(strToken).continueWith(new Continuation<HttpsCallableResult, String>() {
+                    @Override
+                    public String then(@NonNull Task<HttpsCallableResult> task) throws Exception {
+                        String result = (String) task.getResult().getData();
+                        return result;
+                    }
+                });
+    }
+
+    private void updateUI(String result){
         if (token != null) {
             // token.getUid()
-            String strMessage = "Authentication Successful." + "\nUser email: " + auth.getCurrentUser().getEmail()
-                    + "\nUID: " + auth.getCurrentUser().getUid() + "\nToken: " + token.getToken();
-            receivedMessage.setText(strMessage);
+          /*  String strMessage = "Authentication Successful." + "\nUser email: " + auth.getCurrentUser().getEmail()
+                    + "\nUID: " + auth.getCurrentUser().getUid() + "\nToken: " + token.getToken();*/
+            receivedMessage.setText(result);
         }
         else
             receivedMessage.setText(R.string.auth_fail);
