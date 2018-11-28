@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
         auth = FirebaseAuth.getInstance();
+        function = FirebaseFunctions.getInstance();
 
         Intent nfcIntent = new Intent(this, getClass());
         nfcIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
