@@ -58,5 +58,12 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth:16.0.1'
     implementation 'com.google.firebase:firebase-functions:16.0.1'
     implementation 'com.google.protobuf:protobuf-lite:3.0.0'
+    implementation 'io.jsonwebtoken:jjwt-api:0.10.5'
+    runtime 'io.jsonwebtoken:jjwt-impl:0.10.5', 'io.jsonwebtoken:jjwt-jackson:0.10.5'
+    api 'io.jsonwebtoken:jjwt-api:0.10.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.5'
+    runtimeOnly('io.jsonwebtoken:jjwt-orgjson:0.10.5') {
+        exclude group: 'org.json', module: 'json' //provided by Android natively
+    }
 }
 apply plugin: 'com.google.gms.google-services'

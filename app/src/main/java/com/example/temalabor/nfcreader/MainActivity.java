@@ -10,19 +10,25 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.TextView;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
 import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.functions.HttpsCallableResult;
 import com.google.protobuf.InvalidProtocolBufferException;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,6 +39,8 @@ public class MainActivity extends AppCompatActivity {
     FirebaseFunctions function;
     FirebaseAuth auth;
     TokenClass.Token token;
+    String secret = "VLHDVPQELHFQEPIFHEQBFIUKJBWSDIFKDSFBKfdoFULHOeqfugeqIFLKQGEFBSJHAMFVQIKHFGOEUWJLAGFBLWEFF";
+    String offlineToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void authenticate(String strToken){
+    public void authenticate(final String strToken){
         verifyToken(strToken)
                 .addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
@@ -92,8 +100,8 @@ public class MainActivity extends AppCompatActivity {
                         if (task.isSuccessful())
                             updateUI(task.getResult());
                         else {
-                            token = null;
-                            updateUI("");
+                            offlineToken = strToken;
+                            updateUI("offline");
                         }
                     }
                 });
@@ -111,13 +119,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUI(String result){
-        if (token != null) {
+        if (!result.equals("offline")) {
             // token.getUid()
           /*  String strMessage = "Authentication Successful." + "\nUser email: " + auth.getCurrentUser().getEmail()
                     + "\nUID: " + auth.getCurrentUser().getUid() + "\nToken: " + token.getToken();*/
             receivedMessage.setText(result);
         }
-        else
-            receivedMessage.setText(R.string.auth_fail);
-    }
+        else{
+            Jws<Claims> jws;
+            try {
+                String encoded = Base64.encodeToString(secret.getBytes(),Base64.CRLF);
+                JwtParser parser = Jwts.parser().setSigningKey(encoded);
+                jws = parser.parseClaimsJws(offlineToken);
+                int count = jws.getBody().get("count",Integer.class);
+                receivedMessage.setText(Integer.toString(count));
+
+            }catch (JwtException ex){
+                receivedMessage.setText(ex.getLocalizedMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        }
+
 }
