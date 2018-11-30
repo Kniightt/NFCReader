@@ -3,6 +3,7 @@
     package="com.example.temalabor.nfcreader">
 
     <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
 
     <application
