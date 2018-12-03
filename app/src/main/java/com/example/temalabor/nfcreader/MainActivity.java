@@ -156,14 +156,14 @@ public class MainActivity extends AppCompatActivity {
                 // token.getUid()
           /*  String strMessage = "Authentication Successful." + "\nUser email: " + auth.getCurrentUser().getEmail()
                     + "\nUID: " + auth.getCurrentUser().getUid() + "\nToken: " + token.getToken();*/
-                receivedMessage.setText(result);
-                JWT jwt = new JWT(result);
+                final JWT jwt = new JWT(result);
                 String count = jwt.getClaim("count").asString();
                 tokenVerified(result, count).addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
                     public void onComplete(@NonNull Task<String> task) {
                         String result = task.getResult();
-                       receivedMessage.setText(result);
+                       receivedMessage.setText(jwt.getClaim("id").asString() +
+                       "\nNew usage: " + jwt.getClaim("count").asString());
                     }
                 });
                 TokenClass.Token token = TokenClass.Token.newBuilder()
