@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
     String secret = "VLHDVPQELHFQEPIFHEQBFIUKJBWSDIFKDSFBKfdoFULHOeqfugeqIFLKQGEFBSJHAMFVQIKHFGOEUWJLAGFBLWEFF";
     String imei;
 
+  //  String offlinetoken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1NDM4NjM5MTQyNTgiLCJ1aWQiOiJ4ZEhxdGtKeTJNZDNQM1kxTFJqOER5WnlVamwxIiwidXNlcmVtYWlsIjoidG9tbWFob2NoQGdtYWlsLmNvbSIsInNpZCI6ImZpcmViYXNlX3NlcnZlciIsImNvdW50Ijo1LCJleHAiOjE1NDUwNzM1MTQsImlhdCI6MTU0Mzg2MzkxNH0.YG3GOesYIEHqTRUCyFLm_LVNCtj8OLfhu8O0gPiG0bg";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         imei = tm.getDeviceId();
+       // authenticate(offlinetoken);
     }
 
     @Override
@@ -156,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 receivedMessage.setText(result);
                 JWT jwt = new JWT(result);
                 String count = jwt.getClaim("count").asString();
-                tokenVerified(strToken, count).addOnCompleteListener(new OnCompleteListener<String>() {
+                tokenVerified(result, count).addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
                     public void onComplete(@NonNull Task<String> task) {
                         String result = task.getResult();
@@ -164,7 +167,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
                 TokenClass.Token token = TokenClass.Token.newBuilder()
-                        .setUid(jwt.getClaim("uid").asString())
                         .setToken(result).build();
                 NdefMessage message = nfcHelper.createTextMessage(token);
                 nfcHelper.getAdapter().setNdefPushMessage(message,MainActivity.this);
@@ -192,7 +194,6 @@ public class MainActivity extends AppCompatActivity {
                             .signWith(SignatureAlgorithm.HS256, encoded)
                             .compact();
                     TokenClass.Token token = TokenClass.Token.newBuilder()
-                            .setUid(jws.getBody().get("uid", String.class))
                             .setToken(verified)
                             .build();
                     NdefMessage message = nfcHelper.createTextMessage(token);
@@ -200,6 +201,9 @@ public class MainActivity extends AppCompatActivity {
                     receivedMessage.setText("Token offline verified\nUsages: " + Integer.toString(jws.getBody().get("count", Integer.class) - 1));
                 } else {
                     receivedMessage.setText("No more usages!");
+                    TokenClass.Token response = TokenClass.Token.newBuilder().setToken("No more usages!").build();
+                    NdefMessage message = nfcHelper.createTextMessage(response);
+                    nfcHelper.getAdapter().setNdefPushMessage(message,this);
                 }
 
 
@@ -229,12 +233,18 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isSuccessful(String result) {
         if (result.equals("No more usages!")){
-            receivedMessage.setText("No more usages!");
+            receivedMessage.setText(result);
+            TokenClass.Token response = TokenClass.Token.newBuilder().setToken(result).build();
+            NdefMessage message = nfcHelper.createTextMessage(response);
+            nfcHelper.getAdapter().setNdefPushMessage(message,this);
             return false;
 
         }
         else if(result.equals("Token doesnt exist")){
-            receivedMessage.setText("Token doesnt exist");
+            receivedMessage.setText(result);
+            TokenClass.Token response = TokenClass.Token.newBuilder().setToken(result).build();
+            NdefMessage message = nfcHelper.createTextMessage(response);
+            nfcHelper.getAdapter().setNdefPushMessage(message,this);
             return false;
         }
         else return true;
