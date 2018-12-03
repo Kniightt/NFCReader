@@ -55,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
     TokenClass.Token token;
     String secret = "VLHDVPQELHFQEPIFHEQBFIUKJBWSDIFKDSFBKfdoFULHOeqfugeqIFLKQGEFBSJHAMFVQIKHFGOEUWJLAGFBLWEFF";
     String imei;
-    String offlineToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1NDM4NTA2MTU4MzgiLCJ1aWQiOiJ4ZEhxdGtKeTJNZDNQM1kxTFJqOER5WnlVamwxIiwiY291bnQiOjUsImV4cCI6MTU0NTA2MDIxNSwiaWF0IjoxNTQzODUwNjE1fQ.RZhtkHOFGpxoIzoXFcx3_37Uo89_ibfFAfiJuv2Bwms";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +88,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         imei = tm.getDeviceId();
-        authenticate(offlineToken);
     }
 
     @Override
