@@ -2,6 +2,8 @@ package com.example.temalabor.nfcreader;
 
 import android.Manifest;
 import android.app.PendingIntent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -25,6 +27,7 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -46,11 +49,13 @@ public class MainActivity extends AppCompatActivity {
     PendingIntent pendingIntent;
     IntentFilter[] intentFilters;
     NfcAdapter nfcAdapter;
+    NFCHelper nfcHelper;
     FirebaseFunctions function;
     FirebaseAuth auth;
     TokenClass.Token token;
     String secret = "VLHDVPQELHFQEPIFHEQBFIUKJBWSDIFKDSFBKfdoFULHOeqfugeqIFLKQGEFBSJHAMFVQIKHFGOEUWJLAGFBLWEFF";
     String imei;
+    String offlineToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1NDM4NTA2MTU4MzgiLCJ1aWQiOiJ4ZEhxdGtKeTJNZDNQM1kxTFJqOER5WnlVamwxIiwiY291bnQiOjUsImV4cCI6MTU0NTA2MDIxNSwiaWF0IjoxNTQzODUwNjE1fQ.RZhtkHOFGpxoIzoXFcx3_37Uo89_ibfFAfiJuv2Bwms";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         receivedMessage = findViewById(R.id.receivedMessage);
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        nfcHelper = new NFCHelper(this);
         auth = FirebaseAuth.getInstance();
         function = FirebaseFunctions.getInstance();
 
@@ -83,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         imei = tm.getDeviceId();
+        authenticate(offlineToken);
     }
 
     @Override
@@ -116,18 +123,18 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onComplete(@NonNull Task<String> task) {
                         if (task.isSuccessful())
-                            updateUI(task.getResult(),strToken);
+                            updateUI(task.getResult(), strToken);
                         else {
-                            updateUI("offline",strToken);
+                            updateUI("offline", strToken);
                         }
                     }
                 });
     }
 
     private Task<String> verifyToken(String strToken) {
-        Map<String,Object> data = new HashMap<>();
-        data.put("imei",imei);
-        data.put("token",strToken);
+        Map<String, Object> data = new HashMap<>();
+        data.put("imei", imei);
+        data.put("token", strToken);
 
         return function.getHttpsCallable("verifyToken")
                 .call(data).continueWith(new Continuation<HttpsCallableResult, String>() {
@@ -146,40 +153,62 @@ public class MainActivity extends AppCompatActivity {
           /*  String strMessage = "Authentication Successful." + "\nUser email: " + auth.getCurrentUser().getEmail()
                     + "\nUID: " + auth.getCurrentUser().getUid() + "\nToken: " + token.getToken();*/
                 receivedMessage.setText(result);
-                tokenVerified(strToken,result).addOnCompleteListener(new OnCompleteListener<String>() {
+                tokenVerified(strToken, result).addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
                     public void onComplete(@NonNull Task<String> task) {
                         String result = task.getResult();
                         receivedMessage.setText(result);
                     }
                 });
-            }
-            else{
+            } else {
 
             }
 
-        }
-        else{
+        } else {
             Jws<Claims> jws;
             try {
-                String encoded = Base64.encodeToString(secret.getBytes(),Base64.CRLF);
+                String encoded = Base64.encodeToString(secret.getBytes(), Base64.CRLF);
                 JwtParser parser = Jwts.parser().setSigningKey(encoded);
                 jws = parser.parseClaimsJws(strToken);
-                int count = jws.getBody().get("count",Integer.class);
-                receivedMessage.setText(Integer.toString(count));
+                int count = jws.getBody().get("count", Integer.class);
 
-            }catch (JwtException ex){
+                if (count > 0) {
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("id", jws.getBody().get("id", String.class));
+                    data.put("uid", jws.getBody().get("uid", String.class));
+                    data.put("count", jws.getBody().get("count", Integer.class) - 1);
+                    String verified = Jwts.builder()
+                            .setExpiration(jws.getBody().getExpiration())
+                            .setIssuedAt(jws.getBody().getIssuedAt())
+                            .addClaims(data)
+                            .signWith(SignatureAlgorithm.HS256, encoded)
+                            .compact();
+                    TokenClass.Token token = TokenClass.Token.newBuilder()
+                            .setUid(jws.getBody().get("uid",String.class))
+                            .setToken(verified)
+                            .build();
+                    NdefMessage message = nfcHelper.createTextMessage(token);
+                    nfcHelper.getAdapter().setNdefPushMessage(message,MainActivity.this);
+                    receivedMessage.setText(token.toString());
+                    receivedMessage.setText("Token offline verified\nUsages: " + Integer.toString(jws.getBody().get("count",Integer.class)-1));
+                }
+                else {
+                    receivedMessage.setText("No more usages!");
+                }
+
+
+            } catch (JwtException ex) {
                 receivedMessage.setText(ex.getLocalizedMessage());
             }
         }
 
-        }
+    }
 
     private Task<String> tokenVerified(String strToken, String result) {
-        Map<String,Object> data = new HashMap<>();
-        data.put("imei",imei);
-        data.put("token",strToken);
-        data.put("count",result);
+        Map<String, Object> data = new HashMap<>();
+        data.put("imei", imei);
+        data.put("token", strToken);
+        data.put("count", result);
 
         return function.getHttpsCallable("tokenVerified")
                 .call(data).continueWith(new Continuation<HttpsCallableResult, String>() {
