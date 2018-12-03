@@ -23,12 +23,15 @@ import android.util.Log;
 import android.widget.TextView;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import com.auth0.android.jwt.JWT;
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -55,7 +58,6 @@ public class MainActivity extends AppCompatActivity {
     TokenClass.Token token;
     String secret = "VLHDVPQELHFQEPIFHEQBFIUKJBWSDIFKDSFBKfdoFULHOeqfugeqIFLKQGEFBSJHAMFVQIKHFGOEUWJLAGFBLWEFF";
     String imei;
-    String offlineToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1NDM4NTA2MTU4MzgiLCJ1aWQiOiJ4ZEhxdGtKeTJNZDNQM1kxTFJqOER5WnlVamwxIiwiY291bnQiOjUsImV4cCI6MTU0NTA2MDIxNSwiaWF0IjoxNTQzODUwNjE1fQ.RZhtkHOFGpxoIzoXFcx3_37Uo89_ibfFAfiJuv2Bwms";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +91,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         imei = tm.getDeviceId();
-        authenticate(offlineToken);
     }
 
     @Override
@@ -153,13 +154,20 @@ public class MainActivity extends AppCompatActivity {
           /*  String strMessage = "Authentication Successful." + "\nUser email: " + auth.getCurrentUser().getEmail()
                     + "\nUID: " + auth.getCurrentUser().getUid() + "\nToken: " + token.getToken();*/
                 receivedMessage.setText(result);
-                tokenVerified(strToken, result).addOnCompleteListener(new OnCompleteListener<String>() {
+                JWT jwt = new JWT(result);
+                String count = jwt.getClaim("count").asString();
+                tokenVerified(strToken, count).addOnCompleteListener(new OnCompleteListener<String>() {
                     @Override
                     public void onComplete(@NonNull Task<String> task) {
                         String result = task.getResult();
-                        receivedMessage.setText(result);
+                       receivedMessage.setText(result);
                     }
                 });
+                TokenClass.Token token = TokenClass.Token.newBuilder()
+                        .setUid(jwt.getClaim("uid").asString())
+                        .setToken(result).build();
+                NdefMessage message = nfcHelper.createTextMessage(token);
+                nfcHelper.getAdapter().setNdefPushMessage(message,MainActivity.this);
             } else {
 
             }
@@ -184,15 +192,13 @@ public class MainActivity extends AppCompatActivity {
                             .signWith(SignatureAlgorithm.HS256, encoded)
                             .compact();
                     TokenClass.Token token = TokenClass.Token.newBuilder()
-                            .setUid(jws.getBody().get("uid",String.class))
+                            .setUid(jws.getBody().get("uid", String.class))
                             .setToken(verified)
                             .build();
                     NdefMessage message = nfcHelper.createTextMessage(token);
-                    nfcHelper.getAdapter().setNdefPushMessage(message,MainActivity.this);
-                    receivedMessage.setText(token.toString());
-                    receivedMessage.setText("Token offline verified\nUsages: " + Integer.toString(jws.getBody().get("count",Integer.class)-1));
-                }
-                else {
+                    nfcHelper.getAdapter().setNdefPushMessage(message, MainActivity.this);
+                    receivedMessage.setText("Token offline verified\nUsages: " + Integer.toString(jws.getBody().get("count", Integer.class) - 1));
+                } else {
                     receivedMessage.setText("No more usages!");
                 }
 
@@ -222,7 +228,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isSuccessful(String result) {
-        return !result.equals("No more usages!") && !result.equals("Token doesnt exist");
+        if (result.equals("No more usages!")){
+            receivedMessage.setText("No more usages!");
+            return false;
+
+        }
+        else if(result.equals("Token doesnt exist")){
+            receivedMessage.setText("Token doesnt exist");
+            return false;
+        }
+        else return true;
     }
 
 }
