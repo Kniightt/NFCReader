@@ -66,5 +66,8 @@ dependencies {
         exclude group: 'org.json', module: 'json' //provided by Android natively
     }
     implementation 'com.auth0.android:jwtdecode:1.1.1'
+    def room_version = "1.1.1"
+    implementation "android.arch.persistence.room:runtime:$room_version"
+    annotationProcessor "android.arch.persistence.room:compiler:$room_version"
 }
 apply plugin: 'com.google.gms.google-services'

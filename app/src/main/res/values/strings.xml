@@ -2,4 +2,7 @@
     <string name="app_name">NFCReader</string>
     <string name="received_message_default">Received Message:</string>
     <string name="auth_fail">Authentication failed</string>
+    <string name="clear">Clear</string>
+    <string name="verify">Verify offline tokens</string>
+    <string name="Offline_tokens">Tokens:</string>
 </resources>
